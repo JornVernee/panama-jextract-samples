@@ -36,9 +36,8 @@ import static org.unix.readline_h.*;
 public class Readline {
     public static void main(String[] args) {
         try (var s = Cstring.toCString("name? ")) {
-            var pstr = s.baseAddress();
             // call "readline" API
-            var p = readline(pstr);
+            var p = readline(s);
 
             // print char* as is
             System.out.println(p);
