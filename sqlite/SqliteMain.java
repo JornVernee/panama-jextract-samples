@@ -29,22 +29,24 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+import jdk.incubator.foreign.MemoryAddress;
+import jdk.incubator.foreign.MemoryAccess;
 import jdk.incubator.foreign.NativeScope;
-import org.sqlite.Cpointer;
-import org.sqlite.Cstring;
 import static jdk.incubator.foreign.MemoryAddress.NULL;
 import static org.sqlite.sqlite3_h.*;
+import static org.sqlite.RuntimeHelper.*;
+import static jdk.incubator.foreign.CSupport.*;
 
 public class SqliteMain {
    public static void main(String[] args) throws Exception {
         try (var scope = NativeScope.unboundedScope()) {
             // char** errMsgPtrPtr;
-            var errMsgPtrPtr = Cpointer.allocate(NULL, scope);
+            var errMsgPtrPtr = scope.allocate(C_POINTER);
 
             // sqlite3** dbPtrPtr;
-            var dbPtrPtr = Cpointer.allocate(NULL, scope);
+            var dbPtrPtr = scope.allocate(C_POINTER);
 
-            int rc = sqlite3_open(Cstring.toCString("employee.db",scope), dbPtrPtr);
+            int rc = sqlite3_open(toCString("employee.db",scope), dbPtrPtr);
             if (rc != 0) {
                 System.err.println("sqlite3_open failed: " + rc);
                 return;
@@ -53,10 +55,10 @@ public class SqliteMain {
             }
 
             // sqlite3* dbPtr;
-            var dbPtr = Cpointer.get(dbPtrPtr);
+            var dbPtr = MemoryAccess.getAddress(dbPtrPtr);
 
             // create a new table
-            var sql = Cstring.toCString(
+            var sql = toCString(
                 "CREATE TABLE EMPLOYEE ("  +
                 "  ID INT PRIMARY KEY NOT NULL," +
                 "  NAME TEXT NOT NULL,"    +
@@ -66,14 +68,14 @@ public class SqliteMain {
 
             if (rc != 0) {
                 System.err.println("sqlite3_exec failed: " + rc);
-                System.err.println("SQL error: " + Cstring.toJavaStringRestricted(Cpointer.get(errMsgPtrPtr)));
-                sqlite3_free(Cpointer.get(errMsgPtrPtr));
+                System.err.println("SQL error: " + toJavaStringRestricted(MemoryAccess.getAddress(errMsgPtrPtr)));
+                sqlite3_free(MemoryAccess.getAddress(errMsgPtrPtr));
             } else {
                 System.out.println("employee table created");
             }
 
             // insert two rows
-            sql = Cstring.toCString(
+            sql = toCString(
                 "INSERT INTO EMPLOYEE (ID,NAME,SALARY) " +
                     "VALUES (134, 'Xyz', 200000.0); " +
                 "INSERT INTO EMPLOYEE (ID,NAME,SALARY) " +
@@ -83,8 +85,8 @@ public class SqliteMain {
 
             if (rc != 0) {
                 System.err.println("sqlite3_exec failed: " + rc);
-                System.err.println("SQL error: " + Cstring.toJavaStringRestricted(Cpointer.get(errMsgPtrPtr)));
-                sqlite3_free(Cpointer.get(errMsgPtrPtr));
+                System.err.println("SQL error: " + toJavaStringRestricted(MemoryAccess.getAddress(errMsgPtrPtr)));
+                sqlite3_free(MemoryAccess.getAddress(errMsgPtrPtr));
             } else {
                 System.out.println("rows inserted");
             }
@@ -94,24 +96,24 @@ public class SqliteMain {
             var callback = sqlite3_exec$callback.allocate((a, argc, argv, columnNames) -> {
                 System.out.println("Row num: " + rowNum[0]++);
                 System.out.println("numColumns = " + argc);
-                var argvSeg = Cpointer.asArrayRestricted(argv, argc);
-                var columnNamesSeg = Cpointer.asArrayRestricted(columnNames, argc);
+                var argv_seg = asArrayRestricted(argv, C_POINTER, argc);
+                var columnNames_seg = asArrayRestricted(columnNames, C_POINTER, argc);
                 for (int i = 0; i < argc; i++) {
-                     String name = Cstring.toJavaStringRestricted(Cpointer.get(columnNamesSeg, i));
-                     String value = Cstring.toJavaStringRestricted(Cpointer.get(argvSeg, i));
+                     String name = toJavaStringRestricted(MemoryAccess.getAddressAtIndex(columnNames_seg, i));
+                     String value = toJavaStringRestricted(MemoryAccess.getAddressAtIndex(argv_seg, i));
                      System.out.printf("%s = %s\n", name, value);
                 }
                 return 0;
             }, scope);
 
             // select query
-            sql = Cstring.toCString("SELECT * FROM EMPLOYEE", scope);
+            sql = toCString("SELECT * FROM EMPLOYEE", scope);
             rc = sqlite3_exec(dbPtr, sql, callback, NULL, errMsgPtrPtr);
 
             if (rc != 0) {
                 System.err.println("sqlite3_exec failed: " + rc);
-                System.err.println("SQL error: " + Cstring.toJavaStringRestricted(Cpointer.get(errMsgPtrPtr)));
-                sqlite3_free(Cpointer.get(errMsgPtrPtr));
+                System.err.println("SQL error: " + toJavaStringRestricted(MemoryAccess.getAddress(errMsgPtrPtr)));
+                sqlite3_free(MemoryAccess.getAddress(errMsgPtrPtr));
             } else {
                 System.out.println("done");
             }

@@ -42,7 +42,7 @@ public class GitClone {
           }
           git_libgit2_init();
           try (var scope = NativeScope.unboundedScope()) {
-              var repo = scope.allocate(C_POINTER, NULL);
+              var repo = scope.allocate(C_POINTER);
               var url = toCString(args[0], scope);
               var path = toCString(args[1], scope);
               System.out.println(git_clone(repo, url, path, NULL));
