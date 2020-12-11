@@ -12,7 +12,5 @@ $jextract = find-tool("jextract")
   -I "$tensorflowPath\include" `
   -l tensorflow `
   -J-Xmx2G `
-  -J"-Djextract.log.cursors=true" `
-  -J"-Djextract.debug=true" `
   -- `
   "$tensorflowPath\include\tensorflow\c\c_api.h"

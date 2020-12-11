@@ -13,7 +13,5 @@ $jextract = find-tool("jextract")
   -I "$clangPath\include\clang-c" `
   -l libclang `
   -J-Xmx2G `
-  -J"-Djextract.log.cursors=true" `
-  -J"-Djextract.debug=true" `
   -- `
   "$clangPath\include\clang-c\Index.h"
